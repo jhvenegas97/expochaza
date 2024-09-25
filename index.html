@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Exposición Virtual Chaza Museo Taminango</title>
+    <meta name="description" content="Exposición Virtual Chaza Museo Taminango">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/styles.css" crossorigin="anonymous">
+    <!-- <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script> -->
+
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <!-- <script src="https://unpkg.com/aframe-event-set-component@5/dist/aframe-event-set-component.min.js"></script> -->
+    <script src="https://unpkg.com/aframe-layout-component@5.3.0/dist/aframe-layout-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-template-component@3.2.1/dist/aframe-template-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-proxy-event-component@2.1.0/dist/aframe-proxy-event-component.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+
+    <script src="https://unpkg.com/aframe-look-at-component@0.5.1/dist/aframe-look-at-component.min.js"></script>
+    <script>
+        AFRAME.registerComponent('hotspots', {
+            init: function() {
+                this.el.addEventListener('reloadspots', function(evt) {
+
+                    //get the entire current spot group and scale it to 0
+                    var currspotgroup = document.getElementById(evt.detail.currspots);
+                    currspotgroup.setAttribute("scale", "0 0 0");
+
+                    //get the entire new spot group and scale it to 1
+                    var newspotgroup = document.getElementById(evt.detail.newspots);
+                    newspotgroup.setAttribute("scale", "1 1 1");
+                });
+            }
+        });
+        AFRAME.registerComponent('spot', {
+            schema: {
+                linkto: {
+                    type: "string",
+                    default: ""
+                },
+                spotgroup: {
+                    type: "string",
+                    default: ""
+                }
+            },
+            init: function() {
+
+                //add image source of hotspot icon
+                //this.el.setAttribute("src", "#hotspot");
+                //make the icon look at the camera all the time
+                //this.el.setAttribute("look-at", "#cam");
+
+                var data = this.data;
+
+                this.el.addEventListener('click', function() {
+                    //set the skybox source to the new image as per the spot
+                    var sky = document.getElementById("image-360");
+                    sky.setAttribute("src", data.linkto);
+
+                    var spotcomp = document.getElementById("spots");
+                    var currspots = this.parentElement.getAttribute("id");
+                    //create event for spots component to change the spots data
+                    spotcomp.emit('reloadspots', {
+                        newspots: data.spotgroup,
+                        currspots: currspots
+                    });
+                });
+            }
+        });
+    </script>
+
+
+    <script type="text/javascript">
+        let soundJavaScript = new Audio('sounds/lugaresBambuco.mp3');
+        soundJavaScript.volume = 0.1;
+        soundJavaScript.loop = true;
+        soundJavaScript.load();
+       
+        function playSonido() {
+            soundJavaScript.play();
+        }
+
+        //Variables globales
+        var countHotSpots = 0;
+        var countHotSpotsAnimation = 1;
+        var puntos = 0;
+        var rotacion = 0;
+        var banderaCambiar = true;
+        var movimientoCamara = true;
+        let puntosIni = {
+            0: [0, 0, 0],
+            1: [0, 0, 0]
+        };
+        let puntosFin = {
+            0: [0, 0, 0],
+            1: [0, 0, 0]
+        };
+        var tiempoAhora = new Date();
+        var moverse = true;
+
+        AFRAME.registerComponent('rotation-reader', {
+            tick: function() {
+                var rotation = this.el.getAttribute('rotation');
+                //console.log(rotacion);
+                //Determinar si la camara esta quieta
+                //Obtener dos puntos iniciales
+                switch (puntos) {
+                    case 0:
+                        puntosIni[0][0] = rotation.x;
+                        puntosIni[0][1] = rotation.y;
+                        puntosIni[0][2] = rotation.z;
+                        break;
+                    case 1:
+                        puntosIni[1][0] = rotation.x;
+                        puntosIni[1][1] = rotation.y;
+                        puntosIni[1][2] = rotation.z;
+                        break;
+                    case 2:
+                        puntosFin[0][0] = rotation.x;
+                        puntosFin[0][1] = rotation.y;
+                        puntosFin[0][2] = rotation.z;
+                        break;
+                    case 3:
+                        puntosFin[1][0] = rotation.x;
+                        puntosFin[1][1] = rotation.y;
+                        puntosFin[1][2] = rotation.z;
+                        break;
+                }
+                puntos++;
+                if (puntos == 4) {
+                    //Comparamos puntos y determinamos si la cámara se ha movido
+                    for (let i = 0; i < 2; i++) {
+                        for (let j = 0; j < 2; j++) {
+                            for (let k = 0; k < 3; k++) {
+                                if (puntosIni[i][k] != puntosFin[j][k]) {
+                                    movimientoCamara = true;
+                                    tiempoAhora = new Date();
+                                    break;
+                                } else {
+                                    movimientoCamara = false;
+                                }
+                            } //For final
+                            if (movimientoCamara) {
+                                break;
+                            }
+                        } //For intermedio
+                        if (movimientoCamara) {
+                            break;
+                        }
+                    } //For inicial
+                    puntos = 0;
+                } //if puntos
+                //console.log(movimientoCamara);
+                //console.log(tiempoAhora);
+                if (!movimientoCamara) {
+                    var tiempoFin = new Date();
+                    //console.log(tiempoAhora - tiempoFin);
+                    if ((tiempoAhora - tiempoFin) < -6000 && moverse) {
+                        //console.log(rotation);
+                        rotacion += 0.08;
+                        this.el.setAttribute('rotation', {
+                            x: rotation.x,
+                            y: rotacion,
+                            z: rotation.z
+                        });
+                        if (rotacion >= 360) {
+                            console.log("360");
+                            rotacion = 0;
+                        }
+                        //var objetoCursor = document.getElementById("cursor");
+                        //console.log(objetoCursor.getAttribute('position'));
+                    }
+                }
+                //console.log(rotation);
+            }
+        });
+
+        AFRAME.registerComponent('modificar', {
+            schema: {
+                scale: {
+                    default: '1 1 1'
+                }
+            },
+            init: function() {
+                var data = this.data;
+                var el = this.el; // <a-box>
+                var defaultScale = el.getAttribute('scale');
+
+                el.addEventListener('mouseenter', function() {
+                    //moverse = false;
+                    if (movimientoCamara) {
+                        el.setAttribute('scale', data.scale);
+                        //var objetoTexto=document.getElementById("texto");
+                        //objetoTexto.setAttribute("value","Jonathan Venegas");
+                        //$('#modalTejidos').modal('show');
+                        //console.log($('#salaMadera').position);
+                        //$('#modalCarpinteria').modal('show');
+                        var elementoActual = this.parentElement.getAttribute("id");
+                    }
+                });
+
+                el.addEventListener('mouseleave', function() {
+                    //moverse = true;
+                    soundJavaScript.play();
+                    el.setAttribute('scale', {
+                        x: 1,
+                        y: 1,
+                        z: 1
+                    });
+                    let textos = ["Carpinteria", "Tejidos", "Imprenta", "Herreria", "Barniz",
+                        "Fuente", "Horno", "Salon", "AvzEntradaPrincipal", "AvzEntradaSecundaria",
+                        "RetroEntradaSecundaria", "PajaToquilla", "AvzHerbario", "RetroHerbario",
+                        "Paileria", "Plantas", "AvzSalon", "RetroSalon", "Salon2", "Entrada", "RetroHorno",
+                        "Molino"
+                    ]
+                    for (let i = 0; i < 22; i++) {
+                        var textoCompleto;
+                        textoCompleto = "texto" + textos[i];
+                        var objetoTexto = document.getElementById(textoCompleto);
+                        objetoTexto.setAttribute("value", "");
+                    }
+
+                    var miVideo = document.getElementById("videoSalon");
+                    miVideo.pause();
+                });
+            },
+            tick: function() {
+                //console.log(countHotSpots);
+                var el = this.el;
+                //console.log(el.getAttribute('scale'));
+                countHotSpots++;
+                if (countHotSpots < 2000) {
+                    countHotSpotsAnimation += 0.0001;
+                } else if (countHotSpots >= 2000 && countHotSpots < 4000) {
+                    countHotSpotsAnimation -= 0.0001;
+                } else {
+                    countHotSpots = 0;
+                }
+                el.setAttribute('scale', {
+                    x: countHotSpotsAnimation,
+                    y: countHotSpotsAnimation,
+                    z: countHotSpotsAnimation
+                });
+
+            }
+        });
+
+        AFRAME.registerComponent('cambiar', {
+            schema: {
+                scale: {
+                    default: '1 1 1'
+                }
+            },
+            init: function() {
+                var data = this.data;
+                var el = this.el; // <a-box>
+                //var defaultScale = el.getAttribute('scale');
+                //console.log(data);
+                el.addEventListener('click', function() {
+                    var objetoFondo = document.getElementById("image-360");
+                });
+            }
+        });
+    </script>
+
+    <!-- Imagen Template -->
+    <script id="link" type="text/html">
+        <a-image id="hotSpotsPoints" class="link" geometry="primitive: plane; height: 1; width: 1" material="shader: flat; src: ${thumb}" modificar="scale: 1.3 1.3 1" proxy-event="event: click; to: #image-360; as: fade"></a-image>
+        <!--event-set__click="_target: #image-360; _delay: 300; material.src: ${src}" probar que se puede acceder a otros atributos como src que están definidos luego en la entidads-->
+        <!--sound="on: mouseenter; src: #mouseenter-sound"-->
+    </script>
+</head>
+
+<body>
+    <a-scene>
+        <a-entity id="cam" position="0 0 0" camera look-controls="pointerLockEnabled: true;" rotation-reader mouse-cursor>
+            <a-cursor id="cursor" position="0 0 -.6" color="red" animation__click="property: scale; startEvents: click; from: 0.1 0.1 0.1; to: 1 1 1; dur: 150" animation__fusing="property: fusing; startEvents: fusing; from: 1 1 1; to: 0.1 0.1 0.1; dur: 1500" event-set__mouseenter="_event: mouseenter; color: springgreen"
+                event-set__mouseleave="_event: mouseleave; color: red" raycaster=" objects: .link "></a-cursor>
+        </a-entity>
+        <a-assets>
+            <img id="fondo-entrada-principal" src="images/expochaza.jpg">
+            <audio id="click-sound" crossorigin="anonymous" src="https://cdn.aframe.io/360-image-gallery-boilerplate/audio/click.ogg"></audio>
+            <audio id="mouseenter-sound" crossorigin="anonymous" src="sounds/cuy.mp3"></audio>
+            <audio id="hotspot-sound" crossorigin="anonymous" src="sounds/golpes_puerta.mp3"></audio>
+            <audio id="hotspot-sound-regresar" crossorigin="anonymous" src="sounds/golpes_puerta_corto.mp3"></audio>
+        </a-assets>
+
+        <a-sky id="image-360" position="0 0 0" rotation="0 100 0" radius="10" src="#fondo-entrada-principal" animation__fade="property: components.material.material.color; type: color; from: #FFF; to #000; dur: 300; startEvents: fade" animation__fadeback="property: components.material.material.color; type: color; from: #000; to: #FFF; dur: 300; startEvents: animationcomplete__fade"></a-sky>
+
+    </a-scene>
+</body>
+
+</html>
